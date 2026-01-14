@@ -16,6 +16,9 @@
             -webkit-user-select: none; user-select: none; /* 텍스트 선택 방지 */
         }
 
+        /* 랭킹 입력란에서 가상 키보드 활성화 및 선택 허용 */
+        #nick-input { -webkit-user-select: text; user-select: text; }
+
         .container { 
             background: white; padding: 1.5rem; border-radius: 20px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); width: 95vw; max-width: 450px;
@@ -223,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrongContent = getById('wrong-list-content');
         if(state.wrongAnswers.length > 0) {
             getById('pop-wrong-container').classList.remove('hidden');
-            wrongContent.innerHTML = state.wrongAnswers.map(w => `<div>• ${w.q} = ${w.correct} (입력: ${w.user})</div>`).join('');
+            wrongContent.innerHTML = state.wrongAnswers.map(w => `<div>• ${w.q} = ${w.correct} (You did: ${w.user})</div>`).join('');
         } else { getById('pop-wrong-container').classList.add('hidden'); }
         getById('pop-finish').classList.remove('hidden');
     }
@@ -266,11 +269,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const addFastClick = (id, fn) => {
         const el = getById(id);
         const handler = (e) => {
-            e.preventDefault();
+            // nick-input의 경우 가상 키보드 방지를 피하기 위해 preventDefault 제외
+            if (id !== 'nick-input') {
+                e.preventDefault();
+            }
             fn();
         };
         el.addEventListener('click', handler);
-        el.addEventListener('touchstart', handler, { passive: false });
+        // nick-input은 touchstart 이벤트를 가로채면 키보드가 안 뜰 수 있어 click만 권장
+        if (id !== 'nick-input') {
+            el.addEventListener('touchstart', handler, { passive: false });
+        }
     };
 
     // 버튼 바인딩
