@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Genius - Touch Fixed</title>
+    <style>
+        :root { --primary: #4A90E2; --bg: #F0F2F5; }
+        
+        /* 모바일 터치 및 스크롤 간섭 방지 */
+        body { 
+            font-family: 'Segoe UI', sans-serif; background: var(--bg); 
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box;
+            touch-action: pan-y; /* 수직 스크롤만 허용, 더블탭 확대 방지 */
+            -webkit-user-select: none; user-select: none; /* 텍스트 선택 방지 */
+        }
+
+        .container { 
+            background: white; padding: 1.5rem; border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); width: 95vw; max-width: 450px;
+            text-align: center; position: relative; min-height: 580px; 
+            display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;
+        }
+
+        .hidden { display: none !important; }
+
+        /* 터치 반응성 향상을 위한 스타일 */
+        button { 
+            cursor: pointer; border: none; border-radius: 12px; font-weight: bold; 
+            transition: transform 0.1s, opacity 0.1s; 
+            -webkit-tap-highlight-color: transparent; /* 터치 시 파란 박스 제거 */
+            touch-action: manipulation; /* 모든 버튼에 터치 최적화 적용 */
+        }
+        button:active { transform: scale(0.92); opacity: 0.7; }
+
+        .menu-btn { 
+            width: 100%; padding: 1.1rem; margin: 0.8rem 0; font-size: 1.15rem; 
+            display: block; border-bottom: 4px solid rgba(0,0,0,0.15); 
+        }
+        .cake { background: #FFD93D; color: #333; }
+        .pepper { background: #FF6B6B; color: white; }
+        .volcano { background: #C0392B; color: white; }
+        .ranking-btn { background: #6C5CE7; color: white; }
+
+        .problem-box { 
+            font-size: clamp(2rem, 8vw, 2.8rem); font-weight: 800; 
+            margin: 1rem 0; padding: 1.5rem; background: #F8F9FA; 
+            border-radius: 15px; border: 2px dashed #DDD; 
+        }
+
+        #input-answer { 
+            font-size: 2.2rem; border: none; border-bottom: 3px solid #333; 
+            width: 60%; max-width: 160px; text-align: center; outline: none; 
+            margin-bottom: 1.5rem; background: transparent; color: var(--primary); 
+            pointer-events: none; /* 실제 키보드가 올라오는 것을 방지 */
+        }
+
+        .keypad-wrapper { display: flex; gap: 8px; justify-content: center; }
+        .num-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; flex: 3; }
+        .num-btn { padding: 1rem 0; font-size: 1.4rem; background: #E9ECEF; color: #495057; }
+        .action-pad { display: flex; flex-direction: column; gap: 6px; flex: 1.2; }
+        .del-btn { flex: 1; background: #FFADAD; font-size: 0.95rem; }
+        .ent-btn { flex: 2; background: #9BFFD1; font-size: 1rem; color: #0D5F3A; }
+
+        .footer-btns { display: flex; gap: 10px; margin-top: 15px; }
+        .bottom-btn { flex: 1; padding: 12px; background: #6C757D; color: white; border-radius: 8px; font-size: 0.9rem; }
+
+        .popup { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; border: 2px solid #333; padding: 20px; border-radius: 20px; 
+            z-index: 9999; width: 85%; box-shadow: 0 0 50px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; 
+        }
+
+        .ranking-container { max-height: 250px; overflow-y: auto; margin: 15px 0; border: 1px solid #EEE; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 10px; border-bottom: 1px solid #EEE; text-align: center; }
+
+        .wrong-list { text-align: left; font-size: 0.85rem; background: #FFF0F0; padding: 10px; border-radius: 10px; margin-top: 10px; line-height: 1.4; }
+        .copyright { font-size: 0.75rem; color: #BBB; margin-top: 25px; margin-bottom: -5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="main-content">
+        <div id="page-home">
+            <h1 style="font-size: 1.8rem; margin-top: 0;">🔢 Math Genius</h1>
+            <button class="menu-btn cake" id="btn-cake">🍰 Piece of Cake</button>
+            <button class="menu-btn pepper" id="btn-pepper">🌶️ Hot Pepper</button>
+            <button class="menu-btn volcano" id="btn-volcano">🌋 Spicy Volcano</button>
+            <button class="menu-btn ranking-btn" id="btn-ranking-main">🏆 Ranking</button>
+        </div>
+
+        <div id="page-game" class="hidden">
+            <div id="problem-count" style="text-align: right; font-weight: bold; color: #AAA;">1/30</div>
+            <div class="problem-box" id="problem-display">-</div>
+            <input type="text" id="input-answer" readonly>
+            <div class="keypad-wrapper">
+                <div class="num-pad">
+                    <button class="num-btn" data-val="7">7</button><button class="num-btn" data-val="8">8</button><button class="num-btn" data-val="9">9</button>
+                    <button class="num-btn" data-val="4">4</button><button class="num-btn" data-val="5">5</button><button class="num-btn" data-val="6">6</button>
+                    <button class="num-btn" data-val="1">1</button><button class="num-btn" data-val="2">2</button><button class="num-btn" data-val="3">3</button>
+                    <div style="visibility:hidden"></div><button class="num-btn" data-val="0">0</button>
+                </div>
+                <div class="action-pad">
+                    <button class="del-btn" id="btn-del">DEL</button>
+                    <button class="ent-btn" id="btn-ent">ENTER</button>
+                </div>
+            </div>
+            <div class="footer-btns">
+                <button class="bottom-btn" id="btn-home-game">Home</button>
+            </div>
+        </div>
+
+        <div id="page-result" class="hidden">
+            <h2 id="res-time" style="color: var(--primary);">00:00:00</h2>
+            <h1 id="res-title">Result</h1>
+            <p id="res-msg" style="margin-bottom: 25px; min-height: 50px;"></p>
+            <div id="save-section">
+                <input type="text" id="nick-input" placeholder="Your Name" maxlength="8" style="padding: 10px; width: 60%; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                <button class="ranking-btn" id="btn-save">Submit</button>
+            </div>
+            <button class="menu-btn cake" id="btn-retry" style="display:none;">Retry Mission</button>
+            <button class="bottom-btn" id="btn-home-res" style="width:100%; margin-top:10px;">Home</button>
+        </div>
+
+        <div id="page-ranking" class="hidden">
+            <h2 id="rank-title">🏆 Ranking</h2>
+            <div class="ranking-container"><table id="rank-table"><thead><tr><th>#</th><th>Name</th><th>Time</th><th>Score</th><th>Lv</th></tr></thead><tbody></tbody></table></div>
+            <div class="footer-btns">
+                <button class="bottom-btn" id="rank-tab-cake">🍰</button>
+                <button class="bottom-btn" id="rank-tab-pepper">🌶️</button>
+                <button class="bottom-btn" id="rank-tab-volcano">🌋</button>
+            </div>
+            <button class="bottom-btn" id="btn-home-rank" style="width:100%; margin-top:10px;">Home</button>
+        </div>
+    </div>
+
+    <div class="copyright">
+        Copyright © 2026 Joyful Sprout. All rights reserved.
+    </div>
+
+    <div id="pop-finish" class="popup hidden">
+        <h2 style="margin: 0;">Mission Complete!</h2>
+        <p id="pop-time" style="font-size: 1.8rem; font-weight: bold; color: var(--primary); margin: 10px 0;"></p>
+        <div id="pop-wrong-container" class="hidden">
+            <div class="wrong-list" id="wrong-list-content"></div>
+        </div>
+        <button class="menu-btn ranking-btn" id="btn-pop-close" style="margin-top: 15px;">Check Result</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let state = { mode: '', questions: [], currentIdx: 0, correct: 0, start: 0, end: 0, finalLv: 0, wrongAnswers: [] };
+    const msgs = {
+        L1: ["Nice one!", "Success!", "Quick math!"],
+        L2: ["Expert Level!", "Pure Genius!", "Incredible Speed!"],
+        L3: ["NASA called!", "Brain God!", "Masterpiece!"],
+        Fail: ["Oops!", "Try Again!", "Keep Going!"]
+    };
+
+    const getById = id => document.getElementById(id);
+    const rand = (n, m) => Math.floor(Math.random()*(m-n+1))+n;
+
+    function formatTime(ms) {
+        let m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), cs = Math.floor((ms % 1000) / 10);
+        return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}:${cs.toString().padStart(2,'0')}`;
+    }
+
+    function showPage(pageId) {
+        document.querySelectorAll('#main-content > div').forEach(div => div.classList.add('hidden'));
+        getById(pageId).classList.remove('hidden');
+    }
+
+    function generateQuestions(mode) {
+        let qArr = [];
+        let used = new Set();
+        while(qArr.length < 15) {
+            let a, b;
+            if(mode === 'Cake') { a = rand(2, 9); b = rand(11-a, 9); }
+            else if(mode === 'Pepper') { a = rand(11, 19); b = rand(11-(a%10), 9); }
+            else { a = rand(21, 89); b = rand(11-(a%10), 9); }
+            let pText = `${a} + ${b}`;
+            if(!used.has(pText)) { used.add(pText); qArr.push({ text: pText, ans: a + b }); }
+        }
+        while(qArr.length < 30) {
+            let a, b;
+            if(mode === 'Cake') { a = rand(11, 18); b = rand(a%10 + 1, 9); }
+            else if(mode === 'Pepper') { a = (Math.random() > 0.5) ? rand(11, 19) : rand(21, 29); b = rand(a%10 + 1, 9); }
+            else { a = rand(31, 98); if(a%10 === 0) a++; b = rand(a%10 + 1, 9); }
+            let pText = `${a} - ${b}`;
+            if(!used.has(pText)) { used.add(pText); qArr.push({ text: pText, ans: a - b }); }
+        }
+        return qArr.sort(() => Math.random() - 0.5);
+    }
+
+    function renderQ() {
+        getById('input-answer').value = '';
+        getById('problem-count').innerText = `${state.currentIdx + 1}/30`;
+        getById('problem-display').innerText = state.questions[state.currentIdx].text;
+    }
+
+    function startGame(m) {
+        state = { mode: m, questions: generateQuestions(m), currentIdx: 0, correct: 0, start: Date.now(), end: 0, finalLv: 0, wrongAnswers: [] };
+        showPage('page-game');
+        renderQ();
+    }
+
+    function checkAnswer() {
+        let inputVal = getById('input-answer').value;
+        if(inputVal === '') return;
+        let currentQ = state.questions[state.currentIdx];
+        if(parseInt(inputVal) === currentQ.ans) { state.correct++; }
+        else { state.wrongAnswers.push({ q: currentQ.text, user: inputVal, correct: currentQ.ans }); }
+        state.currentIdx++;
+        if(state.currentIdx < 30) renderQ(); else { state.end = Date.now(); finish(); }
+    }
+
+    function finish() {
+        getById('pop-time').innerText = formatTime(state.end - state.start);
+        const wrongContent = getById('wrong-list-content');
+        if(state.wrongAnswers.length > 0) {
+            getById('pop-wrong-container').classList.remove('hidden');
+            wrongContent.innerHTML = state.wrongAnswers.map(w => `<div>• ${w.q} = ${w.correct} (입력: ${w.user})</div>`).join('');
+        } else { getById('pop-wrong-container').classList.add('hidden'); }
+        getById('pop-finish').classList.remove('hidden');
+    }
+
+    function closePopup() {
+        getById('pop-finish').classList.add('hidden');
+        showPage('page-result');
+        let diffSec = (state.end - state.start) / 1000, err = 30 - state.correct, lv = 0;
+        if(diffSec <= 150 && err <= 2) {
+            lv = 1;
+            if((err === 0 && diffSec <= 150) || (err <= 2 && diffSec <= 70)) lv = 2;
+            if(err === 0 && diffSec <= 50) lv = 3;
+        }
+        state.finalLv = lv;
+        getById('res-time').innerText = formatTime(state.end - state.start);
+        if(lv > 0) {
+            getById('res-title').innerText = ["Success!", "Great Success!", "Incredible Success!"][lv-1];
+            getById('res-msg').innerText = msgs['L'+lv][rand(0, 2)];
+            getById('save-section').classList.remove('hidden');
+            getById('btn-retry').style.display = 'none';
+        } else {
+            getById('res-title').innerText = "Try Again!";
+            getById('res-msg').innerText = msgs.Fail[rand(0, 2)];
+            getById('save-section').classList.add('hidden');
+            getById('btn-retry').style.display = 'block';
+        }
+    }
+
+    function loadRanking(mode) {
+        state.mode = mode;
+        showPage('page-ranking');
+        getById('rank-title').innerText = `🏆 ${mode}`;
+        let data = JSON.parse(localStorage.getItem('math_rank_'+mode) || '[]');
+        getById('rank-table').querySelector('tbody').innerHTML = data.map((r, i) => 
+            `<tr><td>${i+1}</td><td>${r.name}</td><td>${r.time}</td><td>${r.score}/30</td><td>L${r.lv}</td></tr>`
+        ).join('');
+    }
+
+    // 터치 및 클릭 이벤트 통합 처리 함수
+    const addFastClick = (id, fn) => {
+        const el = getById(id);
+        const handler = (e) => {
+            e.preventDefault();
+            fn();
+        };
+        el.addEventListener('click', handler);
+        el.addEventListener('touchstart', handler, { passive: false });
+    };
+
+    // 버튼 바인딩
+    addFastClick('btn-cake', () => startGame('Cake'));
+    addFastClick('btn-pepper', () => startGame('Pepper'));
+    addFastClick('btn-volcano', () => startGame('Volcano'));
+    addFastClick('btn-ranking-main', () => loadRanking('Cake'));
+    addFastClick('btn-home-game', () => showPage('page-home'));
+    addFastClick('btn-home-res', () => showPage('page-home'));
+    addFastClick('btn-home-rank', () => showPage('page-home'));
+    addFastClick('btn-pop-close', () => closePopup());
+    addFastClick('btn-retry', () => startGame(state.mode));
+    addFastClick('btn-del', () => {
+        let v = getById('input-answer').value;
+        getById('input-answer').value = v.slice(0, -1);
+    });
+    addFastClick('btn-ent', () => checkAnswer());
+    addFastClick('btn-save', () => {
+        let name = getById('nick-input').value || "Genius";
+        let scoreData = { name, time: formatTime(state.end - state.start), ms: state.end - state.start, score: state.correct, lv: state.finalLv };
+        let storageKey = 'math_rank_' + state.mode;
+        let data = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        data.push(scoreData);
+        data.sort((a,b) => a.ms - b.ms);
+        localStorage.setItem(storageKey, JSON.stringify(data.slice(0, 20)));
+        loadRanking(state.mode);
+    });
+
+    addFastClick('rank-tab-cake', () => loadRanking('Cake'));
+    addFastClick('rank-tab-pepper', () => loadRanking('Pepper'));
+    addFastClick('rank-tab-volcano', () => loadRanking('Volcano'));
+
+    // 숫자 버튼 바인딩
+    document.querySelectorAll('.num-btn').forEach(btn => {
+        const handler = (e) => {
+            e.preventDefault();
+            getById('input-answer').value += btn.getAttribute('data-val');
+        };
+        btn.addEventListener('click', handler);
+        btn.addEventListener('touchstart', handler, { passive: false });
+    });
+
+    window.onkeydown = e => {
+        if(getById('page-game').classList.contains('hidden')) return;
+        if(e.key >= '0' && e.key <= '9') getById('input-answer').value += e.key;
+        else if(e.key === 'Backspace') getById('btn-del').click();
+        else if(e.key === 'Enter') checkAnswer();
+    };
+});
+</script>
+</body>
+</html>
